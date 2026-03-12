@@ -12,6 +12,7 @@ You will implement:
 
 import threading
 from sdk_do_not_edit import Metric
+import copy
 
 
 class MetricsAggregator:
@@ -32,7 +33,13 @@ class MetricsAggregator:
         #   - self._total_errors = 0  (count of errors)
         #   - self._metrics = {}  (dict of metric_name -> {"count": 0, "sum": 0.0, "min": float("inf"), "max": float("-inf")})
         #   - self._per_run = {}  (dict of run_id -> {"count": 0, "last_step": 0})
-        pass
+        self._lock = threading.Lock()
+        self._total_ingested = 0
+        self._total_validated = 0
+        self._total_invalid = 0
+        self._total_errors = 0
+        self._metric_to_stats = {}
+        self._rid_to_stats = {}
 
     def record_metric(self, metric: Metric) -> None:
         """
@@ -47,17 +54,54 @@ class MetricsAggregator:
         #   - Update count, sum, min, max for that metric name
         #   - Update per_run tracking (count and last_step)
         #   - Release the lock (use with statement for safety)
-        pass
+        
+        # obtain lock
+        with self._lock:
+            # update project metric stats
+            self._total_ingested += 1
+            self._total_validated += 1
+
+            if metric.metric_name not in self._metric_to_stats:
+                self._metric_to_stats[metric.metric_name] = {
+                    'count': 0,
+                    'sum': 0.0,
+                    'min': float('inf'),
+                    'max': float('-inf')
+                }
+            
+            metric_stats = self._metric_to_stats[metric.metric_name]
+            
+            metric_stats['count'] += 1
+            metric_stats['sum'] += metric.value
+            metric_stats['min'] = min(
+                metric_stats['min'], 
+                metric.value
+            )
+            metric_stats['max'] = max(
+                metric_stats['max'], 
+                metric.value
+            )
+
+            # update run stats
+            if metric.run_id not in self._rid_to_stats:
+                self._rid_to_stats[metric.run_id] = {'count': 0, 'last_step': None}
+            run_stats = self._rid_to_stats[metric.run_id]
+            run_stats['count'] += 1
+            run_stats['last_step'] = metric.step
 
     def record_invalid(self) -> None:
         """Record that an invalid metric was encountered."""
         # Increment self._total_ingested and self._total_invalid under the lock
-        pass
+        with self._lock:
+            self._total_ingested += 1
+            self._total_invalid += 1
+
 
     def record_error(self) -> None:
         """Record that an error occurred."""
         # Increment self._total_errors under the lock
-        pass
+        with self._lock:
+            self._total_errors += 1
 
     def get_snapshot(self) -> dict:
         """
@@ -73,4 +117,19 @@ class MetricsAggregator:
         #   - For each metric in the copy, compute avg = sum / count (handle count=0)
         #   - Return the snapshot dict (see display.py for expected shape)
         #   - Release the lock
-        pass
+        with self._lock:
+            metrics = copy.deepcopy(self._metric_to_stats)
+            per_run = copy.deepcopy(self._rid_to_stats)
+
+            for metric_name, stats in metrics.items():
+                avg = stats['sum'] / stats['count'] if stats['count'] else 0
+                metrics[metric_name]['avg'] = avg
+
+            return {
+                'total_ingested': self._total_ingested,
+                'total_validated': self._total_validated,
+                'total_invalid': self._total_invalid,
+                'total_errors': self._total_errors,
+                'metrics': metrics,
+                'per_run': per_run
+            }
