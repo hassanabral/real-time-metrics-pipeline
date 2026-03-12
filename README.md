@@ -86,13 +86,14 @@ Streams metrics from the SDK into the queue.
 - **TODO 1**: Iterate over `sdk.stream_run_metrics(run_id)` and put each metric on the queue
 - **TODO 2**: Put `SENTINEL` on the queue when the stream ends
 - **TODO 3**: Wrap in try/except -- always send SENTINEL even on error
+![alt text](image-1.png)
 
 ### 3. `consumer.py` (TODOs 4-6)
 Pulls from the queue, validates, and records.
 - **TODO 4**: Loop pulling from the queue; handle SENTINEL to track producer completion
 - **TODO 5**: Validate metrics using the semaphore for rate limiting; handle `RateLimitError`
 - **TODO 6**: Catch unexpected exceptions gracefully
-
+![alt text](image.png)
 ### 4. `monitor.py` (TODOs 10-11)
 Periodically displays live stats.
 - **TODO 10**: Loop calling `get_snapshot()` and `display_fn()` until `stop_event` is set

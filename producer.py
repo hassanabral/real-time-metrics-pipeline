@@ -49,4 +49,20 @@ def produce_metrics(
     #   - If any exception occurs, increment error_count["count"] using error_lock
     #   - Still put SENTINEL on the queue even if an error occurs (so consumers don't hang)
     #   - Print a warning message with the run_id and error
-    pass
+    
+    """
+    My thingking:
+    - call the sdk function with proper threading tools -> 
+    - return the result in the correct format
+    - when done producing, add [max total consumer] Nones to the queue
+    """
+    try:
+        for metric in sdk.stream_run_metrics(run_id):
+            queue.put(metric)
+    except Exception as e:
+        print(f"Error streaming metric for run {run_id}", e)
+        # increment error count with lock
+        with error_lock:
+            error_count['count'] += 1
+    finally:
+        queue.put(SENTINEL)
