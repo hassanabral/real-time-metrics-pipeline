@@ -25,14 +25,6 @@ class MetricsAggregator:
     """
 
     def __init__(self):
-        # TODO 7: Initialize the lock and shared state:
-        #   - self._lock = threading.Lock()
-        #   - self._total_ingested = 0  (count of all metrics recorded)
-        #   - self._total_validated = 0  (count of valid metrics)
-        #   - self._total_invalid = 0  (count of invalid metrics)
-        #   - self._total_errors = 0  (count of errors)
-        #   - self._metrics = {}  (dict of metric_name -> {"count": 0, "sum": 0.0, "min": float("inf"), "max": float("-inf")})
-        #   - self._per_run = {}  (dict of run_id -> {"count": 0, "last_step": 0})
         self._lock = threading.Lock()
         self._total_ingested = 0
         self._total_validated = 0
@@ -48,13 +40,6 @@ class MetricsAggregator:
         Args:
             metric: A validated Metric object
         """
-        # TODO 8: Acquire self._lock, then:
-        #   - Increment self._total_ingested and self._total_validated
-        #   - If metric.metric_name not in self._metrics, initialize it
-        #   - Update count, sum, min, max for that metric name
-        #   - Update per_run tracking (count and last_step)
-        #   - Release the lock (use with statement for safety)
-        
         # obtain lock
         with self._lock:
             # update project metric stats
@@ -112,11 +97,6 @@ class MetricsAggregator:
             Dict with total_ingested, total_validated, total_invalid,
             total_errors, metrics (with avg computed), per_run
         """
-        # TODO 9: Acquire self._lock, then:
-        #   - Create a deep copy of all state
-        #   - For each metric in the copy, compute avg = sum / count (handle count=0)
-        #   - Return the snapshot dict (see display.py for expected shape)
-        #   - Release the lock
         with self._lock:
             metrics = copy.deepcopy(self._metric_to_stats)
             per_run = copy.deepcopy(self._rid_to_stats)

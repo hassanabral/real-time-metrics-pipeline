@@ -38,24 +38,6 @@ def produce_metrics(
         error_count: Shared dict {"count": int} for tracking errors
         error_lock: Lock protecting error_count
     """
-    # TODO 1: Call sdk.stream_run_metrics(run_id) to get a generator
-    #   - Iterate over the generator (it yields Metric objects)
-    #   - For each metric, put it on the queue using queue.put(metric)
-    #
-    # TODO 2: After the stream ends (loop finishes), put SENTINEL on the queue
-    #   - This tells consumers "one producer is done"
-    #
-    # TODO 3: Wrap the entire function body in try/except
-    #   - If any exception occurs, increment error_count["count"] using error_lock
-    #   - Still put SENTINEL on the queue even if an error occurs (so consumers don't hang)
-    #   - Print a warning message with the run_id and error
-    
-    """
-    My thingking:
-    - call the sdk function with proper threading tools -> 
-    - return the result in the correct format
-    - when done producing, add [max total consumer] Nones to the queue
-    """
     try:
         for metric in sdk.stream_run_metrics(run_id):
             queue.put(metric)
