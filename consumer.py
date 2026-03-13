@@ -11,7 +11,7 @@ You will implement:
 """
 
 import threading
-from queue import Queue
+from queue import Queue, Empty
 from sdk_do_not_edit import WandbMetricsSDK, Metric, RateLimitError
 from producer import SENTINEL
 import time
@@ -73,7 +73,7 @@ def consume_metrics(
         # get metric from queue
         try:
             metric = queue.get(timeout=0.5) 
-        except queue.Empty as e:
+        except Empty as e:
             # continue if queue is empty
             continue
 

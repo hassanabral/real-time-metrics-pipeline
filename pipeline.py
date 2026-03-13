@@ -18,6 +18,9 @@ from monitor import run_monitor
 from display import display_pipeline_stats
 
 
+MAX_SEMAPHORES = 15 # to stay under 20/s
+MONITOR_INTERVAL = 0.5
+
 def run_pipeline(sdk: WandbMetricsSDK, run_ids: list[str]) -> dict:
     """
     Run the complete metrics pipeline.
@@ -44,37 +47,60 @@ def run_pipeline(sdk: WandbMetricsSDK, run_ids: list[str]) -> dict:
     producers_remaining = {"count": len(run_ids)}
     producers_lock = threading.Lock()
 
-    # TODO 12: Create a Semaphore with value 15 (to stay under the SDK's 20/sec rate limit)
-    #   semaphore = threading.Semaphore(15)
+    # create producer threads for runs
+    pthreads = []
+    for run_id in run_ids:
+        pthread = threading.Thread(target=produce_metrics, args=(
+            sdk,
+            run_id,
+            queue,
+            error_count,
+            error_lock
+        ))
+        pthreads.append(pthread)
+    
+    # create consumer threads
+    validate_semaphore = threading.Semaphore(MAX_SEMAPHORES)
+    cthreads = []
+    for i in range(4):
+        cthread = threading.Thread(target=consume_metrics, args=(
+            sdk,
+            queue,
+            aggregator,
+            validate_semaphore,
+            producers_remaining,
+            producers_lock,
+            stop_event
+        ))
+        cthreads.append(cthread)
+    
+    # setup monitor thread
+    mthread = threading.Thread(target=run_monitor, 
+        args=(
+            aggregator, 
+            stop_event, 
+            display_pipeline_stats,
+            MONITOR_INTERVAL
+    ))
 
-    # TODO 13: Start producer threads -- one per run_id
-    #   - Create a threading.Thread for each run_id, targeting produce_metrics
-    #   - Pass: sdk, run_id, queue, error_count, error_lock
-    #   - Set daemon=True on each thread
-    #   - Start each thread
-    #   - Collect threads in a list
+    # start threads
+    for pthread in pthreads:
+        pthread.start()
+    
+    for cthread in cthreads:
+        cthread.start()
+    
+    mthread.start()
 
-    # TODO 14: Start consumer threads -- 4 workers
-    #   - Create 4 threading.Thread instances, targeting consume_metrics
-    #   - Pass: sdk, queue, aggregator, semaphore, producers_remaining, producers_lock, stop_event
-    #   - Set daemon=True
-    #   - Start each thread
-    #   - Collect threads in a list
+    # join threads
+    for pthread in pthreads:
+        pthread.join()
+    
+    for cthread in cthreads:
+        cthread.join()
+    
+    mthread.join()
 
-    # TODO 15: Start 1 monitor thread
-    #   - Create a threading.Thread targeting run_monitor
-    #   - Pass: aggregator, stop_event, display_pipeline_stats, interval=0.5
-    #   - Set daemon=True
-    #   - Start the thread
-
-    # TODO 16: Wait for completion
-    #   - Join all producer threads (they finish when their stream ends)
-    #   - Wait for stop_event to be set (consumers set it when all producers are done)
-    #   - Or use stop_event.wait(timeout=30) as a safety timeout
-    #   - Join all consumer threads with a timeout
-    #   - Set stop_event if not already set (to stop the monitor)
-    #   - Join the monitor thread
-
-    # Return final snapshot
-    # return aggregator.get_snapshot()
-    pass
+    # return final snapshot
+    snapshot = aggregator.get_snapshot()
+    return snapshot
