@@ -30,12 +30,22 @@ def run_monitor(
         display_fn: Function to call with each snapshot
         interval: Seconds between updates (default 0.5)
     """
-    # TODO 10: Loop until stop_event is set:
-    #   - Call aggregator.get_snapshot()
-    #   - Pass the snapshot to display_fn(snapshot)
-    #   - Use stop_event.wait(interval) instead of time.sleep(interval)
-    #     (this allows immediate wake-up when stop_event is set)
-    #
-    # TODO 11: After the loop exits (stop_event is set):
-    #   - Do one final snapshot + display to show final stats
-    pass
+    while not stop_event.is_set():
+        # call aggregator get snapshot with 0.5 timeout
+        try:
+            snapshot = aggregator.get_snapshot()
+            display_fn(snapshot)
+
+            # periodic call every 0.5 sec
+            stop_event.wait(interval)
+        except Exception as e:
+            print("Error runing monitor", e)
+            continue
+
+    # one last snapshot after exiting
+    try:
+        snapshot = aggregator.get_snapshot()
+        display_fn(snapshot)
+    except Exception as e:
+        print("Error fetching and displaying snapshot", e)
+    
