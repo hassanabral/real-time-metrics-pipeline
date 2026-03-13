@@ -89,12 +89,17 @@ def consume_metrics(
         try:
             # validate metric (while respecting rate limit using semaphore)
             with semaphore:
-                try:
-                    is_valid = sdk.validate_metric(metric)
-                except RateLimitError as e:
-                    # retry once after 0.1 sec if rate limited
-                    time.sleep(0.1)
-                    is_valid = sdk.validate_metric(metric)
+                is_valid = None
+                for attempt in range(2):
+                    try:
+                        is_valid = sdk.validate_metric(metric)
+                        break
+                    except RateLimitError as e:
+                        # retry once after 0.1 sec if rate limited
+                        if attempt == 0:
+                            time.sleep(0.1)
+                        else:
+                            raise
             # call aggregator to record valid and invalid metrics
             if not is_valid:
                 aggregator.record_invalid()
