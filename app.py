@@ -30,4 +30,4 @@ def run():
     if snapshot:
         display_final_summary(snapshot, elapsed)
     else:
-        print("Pipeline returned None -- have you implemented all TODOs?")
+        print("Pipeline returned None.")

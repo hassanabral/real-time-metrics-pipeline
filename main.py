@@ -25,10 +25,9 @@ def main():
         run()
     except NotImplementedError as e:
         console.print(f"[yellow]Not yet implemented:[/yellow] {e}")
-        console.print("[dim]Complete the TODOs in producer.py, consumer.py, aggregator.py, monitor.py, and pipeline.py[/dim]")
     except TypeError as e:
         if "NoneType" in str(e):
-            console.print(f"[yellow]A function returned None -- have you implemented all the TODOs?[/yellow]")
+            console.print(f"[yellow]A function returned None.[/yellow]")
             console.print(f"[dim]Error: {e}[/dim]")
         else:
             raise

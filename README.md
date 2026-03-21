@@ -13,7 +13,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-When you first run it, you'll see the active runs table but the pipeline will return `None` because the TODO functions are not yet implemented. As you complete each TODO, the pipeline will progressively come to life.
+When you first run it, you'll see the active runs table and the pipeline will stream and process metrics in real time.
 
 ---
 
@@ -73,42 +73,25 @@ Each **producer** streams metrics from one ML experiment run via the SDK. Metric
 
 ## Files To Modify
 
-Complete the TODOs in this order:
+### `aggregator.py`
+The data store that everything writes to and reads from. Initializes the lock and shared state, implements `record_metric()` and `get_snapshot()`.
 
-### 1. `aggregator.py` (TODOs 7-9)
-The data store that everything writes to and reads from.
-- **TODO 7**: Initialize the lock and all shared state dictionaries
-- **TODO 8**: Implement `record_metric()` -- update counters and per-metric stats under the lock
-- **TODO 9**: Implement `get_snapshot()` -- return a deep copy of state with computed averages
-
-### 2. `producer.py` (TODOs 1-3)
-Streams metrics from the SDK into the queue.
-- **TODO 1**: Iterate over `sdk.stream_run_metrics(run_id)` and put each metric on the queue
-- **TODO 2**: Put `SENTINEL` on the queue when the stream ends
-- **TODO 3**: Wrap in try/except -- always send SENTINEL even on error
+### `producer.py`
+Streams metrics from the SDK into the queue. Iterates over `sdk.stream_run_metrics(run_id)`, puts each metric on the queue, and sends a `SENTINEL` when the stream ends.
 ![alt text](image-1.png)
 
-### 3. `consumer.py` (TODOs 4-6)
-Pulls from the queue, validates, and records.
-- **TODO 4**: Loop pulling from the queue; handle SENTINEL to track producer completion
-- **TODO 5**: Validate metrics using the semaphore for rate limiting; handle `RateLimitError`
-- **TODO 6**: Catch unexpected exceptions gracefully
+### `consumer.py`
+Pulls from the queue, validates, and records. Handles SENTINEL to track producer completion, validates metrics using the semaphore for rate limiting, and catches exceptions gracefully.
 ![alt text](image.png)
-### 4. `monitor.py` (TODOs 10-11)
-Periodically displays live stats.
-- **TODO 10**: Loop calling `get_snapshot()` and `display_fn()` until `stop_event` is set
-- **TODO 11**: Do one final display after shutdown
 
-### 5. `pipeline.py` (TODOs 12-16)
-Wires everything together.
-- **TODO 12**: Create the semaphore
-- **TODO 13**: Start producer threads (one per run)
-- **TODO 14**: Start 4 consumer threads
-- **TODO 15**: Start the monitor thread
-- **TODO 16**: Join threads in correct order and return the final snapshot
+### `monitor.py`
+Periodically displays live stats by calling `get_snapshot()` and `display_fn()` until `stop_event` is set, with one final display after shutdown.
 
-### 6. `app.py`
-Already mostly complete. Should work once `run_pipeline` returns a valid snapshot.
+### `pipeline.py`
+Wires everything together: creates the semaphore, starts producer threads (one per run), starts 4 consumer threads, starts the monitor thread, and joins threads in correct order.
+
+### `app.py`
+Entry point that fetches active runs and starts the pipeline.
 
 ---
 
