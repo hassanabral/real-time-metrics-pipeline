@@ -20,7 +20,7 @@ When you first run it, you'll see the active runs table and the pipeline will st
 ## Project Structure
 
 ```
-concurrency-project-2/
+real-time-metrics-pipeline/
     main.py                          # Entry point (pre-built)
     app.py                           # Application logic         <-- MODIFY
     pipeline.py                      # Pipeline orchestrator      <-- MODIFY
